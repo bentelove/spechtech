@@ -11,36 +11,84 @@ declare global {
   }
 }
 
-// Функция для проверки, находимся ли мы в реальном Telegram
-function isInRealTelegram(): boolean {
+// Ключевая функция: проверяем, есть ли уже реальные данные Telegram
+function hasRealTelegramData(): boolean {
   if (typeof window === 'undefined') return false;
   
-  // Проверяем несколько признаков реального Telegram:
-  // 1. Наличие window.Telegram.WebApp с настоящими данными
-  // 2. Наличие параметров в URL (Telegram добавляет #tgWebAppData=...)
-  const hasTelegramObject = !!window.Telegram?.WebApp;
-  const hasTelegramHash = window.location.hash.includes('tgWebAppData');
-  const hasInitData = window.Telegram?.WebApp?.initData;
+  const hash = window.location.hash;
+  const hasTelegramHash = hash.includes('tgWebAppData');
   
-  return !!(hasTelegramObject && (hasTelegramHash || hasInitData));
+  // Если в хеше есть tgWebAppData - Telegram уже предоставил данные
+  if (!hasTelegramHash) return false;
+  
+  // Проверяем, не подменили ли мы уже данные тестовыми
+  const initData = window.Telegram?.WebApp?.initData || '';
+  const hasTestData = initData.includes('test_hash_');
+  
+  return hasTelegramHash && !hasTestData;
 }
 
 export default function SimpleTelegramProvider() {
   useEffect(() => {
-    console.log('🔍 Проверяем среду запуска...');
+    console.log('🔍 SimpleTelegramProvider: проверяем среду...');
     
-    // 1. Проверяем, в реальном ли Telegram мы
-    if (isInRealTelegram()) {
-      console.log('✅ Находимся в РЕАЛЬНОМ Telegram!');
-      console.log('Реальные данные пользователя:', window.Telegram?.WebApp?.initDataUnsafe?.user);
-      console.log('initData:', window.Telegram?.WebApp?.initData);
-      console.log('Платформа:', window.Telegram?.WebApp?.platform);
-      return; // Выходим — НЕ создаем тестовые данные!
+    // 1. Если уже есть реальные данные Telegram - НИЧЕГО НЕ ДЕЛАЕМ!
+    if (hasRealTelegramData()) {
+      console.log('✅ Обнаружены реальные данные Telegram. Мокинг НЕ выполняется.');
+      console.log('Hash URL содержит tgWebAppData');
+      return;
     }
-
-    console.log('🛠️ Находимся в браузере. Включаю мокинг Telegram...');
-
-    // 2. Только в браузере создаем тестовые данные
+    
+    // 2. Проверяем хеш на случай, если это реальный Telegram без объекта window.Telegram
+    const hash = window.location.hash;
+    if (hash.includes('tgWebAppData')) {
+      console.log('⚠️ Telegram предоставил данные в хеше, но window.Telegram не инициализирован');
+      console.log('Попробуем извлечь данные из хеша...');
+      
+      try {
+        // Извлекаем tgWebAppData из хеша
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const tgWebAppData = hashParams.get('tgWebAppData');
+        
+        if (tgWebAppData) {
+          // Парсим данные пользователя
+          const initDataParams = new URLSearchParams(tgWebAppData);
+          const userStr = initDataParams.get('user');
+          
+          if (userStr) {
+            const user = JSON.parse(decodeURIComponent(userStr));
+            console.log('👤 Пользователь из хеша Telegram:', user);
+            
+            // Создаём объект Telegram с реальными данными
+            window.Telegram = {
+              WebApp: {
+                initData: tgWebAppData,
+                initDataUnsafe: { user },
+                version: hashParams.get('tgWebAppVersion') || '9.1',
+                platform: hashParams.get('tgWebAppPlatform') || 'macos',
+                themeParams: JSON.parse(hashParams.get('tgWebAppThemeParams') || '{}'),
+                ready: () => console.log('Telegram WebApp ready'),
+                expand: () => {},
+                close: () => {},
+                sendData: () => {},
+                startParam: initDataParams.get('start_param') || '',
+                colorScheme: 'dark',
+                isExpanded: true,
+              },
+            };
+            
+            console.log('✅ Объект Telegram создан из реальных данных хеша');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Ошибка при парсинге данных из хеша:', error);
+      }
+    }
+    
+    // 3. Только если нет реальных данных - мокаем для разработки
+    console.log('🛠️ Режим браузера. Включаю мокинг Telegram для разработки...');
+    
     const userData = {
       id: 123456789,
       first_name: 'Иван',
