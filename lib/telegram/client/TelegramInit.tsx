@@ -9,5 +9,10 @@ export default function TelegramInit() {
       localStorage.setItem('token', rawInitData);
     }
   }, [rawInitData]);
+  if(rawInitData){
+    return <>
+      <pre>{JSON.stringify(rawInitData, null, 2)}</pre>
+    </>;
+  }
   return null;
 }
