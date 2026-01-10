@@ -10,13 +10,11 @@ const TelegramInit = dynamic(
 );
 
 export default function HomePage() {
-  const initData = localStorage.getItem('token');
   return (
     <Suspense fallback={<div>Loading Telegram...</div>}>
       <TelegramInit />
       <main>
         <h1>Your Minfffi App Content</h1>
-        {initData};
       </main>
     </Suspense>
   );
