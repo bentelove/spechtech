@@ -1,0 +1,66 @@
+// components/TelegramAppContent.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useLaunchParams } from '@telegram-apps/sdk-react';
+
+export default function TelegramAppContent() {
+  const launchParams = useLaunchParams();
+  const [status, setStatus] = useState('⏳ Загружаем...');
+
+  useEffect(() => {
+    console.log('DEBUG - launchParams от SDK:', launchParams);
+    console.log('DEBUG - Тип launchParams:', typeof launchParams);
+    
+    if (launchParams && typeof launchParams === 'object') {
+      console.log('DEBUG - Ключи в launchParams:', Object.keys(launchParams));
+      
+      if (launchParams.user) {
+        console.log('DEBUG - Пользователь найден:', launchParams.user);
+        setStatus(`✅ Данные получены! Пользователь: ${JSON.stringify(launchParams.user, null, 2)}`);
+      } else {
+        setStatus('⚠️ Пользователь не найден в launchParams');
+      }
+    } else if (launchParams === undefined) {
+      setStatus('⚠️ launchParams = undefined');
+    } else {
+      setStatus(`⚠️ Неожиданный формат launchParams: ${typeof launchParams}`);
+    }
+  }, [launchParams]);
+
+  return (
+    <main style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>🛠️ Отладка Telegram Mini App</h1>
+      
+      <div style={{
+        background: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '12px',
+        padding: '20px',
+        marginTop: '20px',
+        fontFamily: 'monospace',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-all'
+      }}>
+        <h3>Статус:</h3>
+        <p>{status}</p>
+        
+        <h3 style={{ marginTop: '20px' }}>Raw данные от SDK:</h3>
+        <pre style={{
+          background: '#e9ecef',
+          padding: '10px',
+          borderRadius: '6px',
+          fontSize: '0.8em',
+          maxHeight: '300px',
+          overflow: 'auto'
+        }}>
+          {JSON.stringify(launchParams, null, 2)}
+        </pre>
+      </div>
+      
+      <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666' }}>
+        <p>Откройте консоль разработчика (F12) для детальной отладки.</p>
+      </div>
+    </main>
+  );
+}
