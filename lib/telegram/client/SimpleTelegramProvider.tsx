@@ -11,11 +11,36 @@ declare global {
   }
 }
 
+// Функция для проверки, находимся ли мы в реальном Telegram
+function isInRealTelegram(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Проверяем несколько признаков реального Telegram:
+  // 1. Наличие window.Telegram.WebApp с настоящими данными
+  // 2. Наличие параметров в URL (Telegram добавляет #tgWebAppData=...)
+  const hasTelegramObject = !!window.Telegram?.WebApp;
+  const hasTelegramHash = window.location.hash.includes('tgWebAppData');
+  const hasInitData = window.Telegram?.WebApp?.initData;
+  
+  return !!(hasTelegramObject && (hasTelegramHash || hasInitData));
+}
+
 export default function SimpleTelegramProvider() {
   useEffect(() => {
-    console.log('🛠️ Простой мокинг Telegram через window.Telegram...');
+    console.log('🔍 Проверяем среду запуска...');
+    
+    // 1. Проверяем, в реальном ли Telegram мы
+    if (isInRealTelegram()) {
+      console.log('✅ Находимся в РЕАЛЬНОМ Telegram!');
+      console.log('Реальные данные пользователя:', window.Telegram?.WebApp?.initDataUnsafe?.user);
+      console.log('initData:', window.Telegram?.WebApp?.initData);
+      console.log('Платформа:', window.Telegram?.WebApp?.platform);
+      return; // Выходим — НЕ создаем тестовые данные!
+    }
 
-    // 1. Создаем тестовые данные пользователя
+    console.log('🛠️ Находимся в браузере. Включаю мокинг Telegram...');
+
+    // 2. Только в браузере создаем тестовые данные
     const userData = {
       id: 123456789,
       first_name: 'Иван',
@@ -25,24 +50,20 @@ export default function SimpleTelegramProvider() {
       is_premium: true,
     };
 
-    // 2. Формируем initData строку (как Telegram)
     const initData = new URLSearchParams({
       user: JSON.stringify(userData),
       hash: 'test_hash_' + Date.now(),
       auth_date: Math.floor(Date.now() / 1000).toString(),
     }).toString();
 
-    // 3. Прямо создаем объект window.Telegram.WebApp
     if (typeof window !== 'undefined') {
       window.Telegram = {
         WebApp: {
-          // Основные поля
           initData: initData,
           initDataUnsafe: { user: userData },
           version: '7.10',
           platform: 'tdesktop',
           
-          // Тема
           themeParams: {
             bg_color: '#ffffff',
             text_color: '#000000',
@@ -52,13 +73,11 @@ export default function SimpleTelegramProvider() {
             button_text_color: '#ffffff',
           },
           
-          // Методы для совместимости
-          ready: () => console.log('Telegram WebApp ready'),
+          ready: () => console.log('Telegram WebApp ready (мокинг)'),
           expand: () => {},
           close: () => {},
           sendData: (data: any) => console.log('Send data:', data),
           
-          // Параметры запуска
           startParam: 'debug',
           colorScheme: 'light',
           isExpanded: true,
@@ -67,9 +86,8 @@ export default function SimpleTelegramProvider() {
         },
       };
 
-      console.log('✅ Прямой мокинг через window.Telegram завершен!');
-      console.log('Данные доступны через window.Telegram.WebApp.initDataUnsafe.user');
-      console.log('Пользователь:', window.Telegram.WebApp.initDataUnsafe.user);
+      console.log('✅ Мокинг Telegram для разработки завершен!');
+      console.log('Тестовый пользователь:', window.Telegram.WebApp.initDataUnsafe.user);
     }
   }, []);
 
