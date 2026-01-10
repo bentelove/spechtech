@@ -123,6 +123,8 @@ function UserDataDisplay() {
   const [environment, setEnvironment] = useState<'real-telegram' | 'mocked' | 'unknown'>('unknown');
   const [showDebug, setShowDebug] = useState(false);
   const [dataSource, setDataSource] = useState<'hash' | 'window-telegram' | 'none'>('none');
+  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Проверяем с задержкой, чтобы всё успело инициализироваться
@@ -203,6 +205,58 @@ function UserDataDisplay() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Функция для отправки данных на сервер
+  const sendToBackend = async () => {
+    if (!userData || !userData.initData) {
+      alert('Нет данных для отправки');
+      return;
+    }
+    
+    setLoading(true);
+    setApiResponse(null);
+    
+    try {
+      console.log('📤 Отправляю данные на сервер для проверки...');
+      console.log('initData:', userData.initData);
+      
+      const response = await fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: userData.initData, // Критически важно: строка с подписью
+          user: {
+            id: userData.id,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            username: userData.username,
+            language_code: userData.language_code,
+            is_premium: userData.is_premium,
+            photo_url: userData.photo_url,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      setApiResponse(result);
+
+      if (response.ok) {
+        console.log('✅ Сервер успешно проверил данные Telegram:', result);
+        alert(`Успех! Данные пользователя ${userData.first_name} проверены сервером.`);
+        // Здесь можно сохранить данные пользователя для дальнейшего использования
+        // localStorage.setItem('telegram_user', JSON.stringify(result.user));
+      } else {
+        console.error('❌ Ошибка от сервера:', result);
+        alert(`Ошибка от сервера: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при отправке данных:', error);
+      setApiResponse({ error: 'Сетевая ошибка' });
+      alert('Сетевая ошибка при отправке данных');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ padding: '20px', fontFamily: 'system-ui, sans-serif' }}>
@@ -312,6 +366,69 @@ function UserDataDisplay() {
                 </div>
               )}
             </div>
+
+            {/* Блок проверки авторизации на сервере */}
+            {environment === 'real-telegram' && userData && (
+              <div style={{ 
+                marginTop: '30px', 
+                padding: '20px', 
+                background: '#e7f3ff', 
+                borderRadius: '12px',
+                borderLeft: '4px solid #2481cc'
+              }}>
+                <h3>🔐 Проверка авторизации на сервере</h3>
+                <p>Нажмите кнопку ниже, чтобы отправить данные на сервер для проверки подписи Telegram.</p>
+                
+                <button
+                  onClick={sendToBackend}
+                  disabled={loading}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: loading ? '#6c757d' : '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    marginTop: '10px'
+                  }}
+                >
+                  {loading ? '⏳ Отправка и проверка...' : '🔐 Проверить подпись Telegram на сервере'}
+                </button>
+                
+                {apiResponse && (
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '15px',
+                    background: apiResponse.success ? '#d1ecf1' : '#f8d7da',
+                    border: `1px solid ${apiResponse.success ? '#bee5eb' : '#f5c6cb'}`,
+                    borderRadius: '8px'
+                  }}>
+                    <h4>Ответ от сервера:</h4>
+                    <pre style={{ 
+                      whiteSpace: 'pre-wrap', 
+                      wordBreak: 'break-all',
+                      maxHeight: '200px',
+                      overflow: 'auto',
+                      fontSize: '14px'
+                    }}>
+                      {JSON.stringify(apiResponse, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                
+                <div style={{ marginTop: '15px', fontSize: '0.9em', color: '#666' }}>
+                  <p><strong>Что происходит:</strong></p>
+                  <ol style={{ marginLeft: '20px', lineHeight: '1.5' }}>
+                    <li>Сервер проверяет подпись <code>initData</code> с помощью токена бота</li>
+                    <li>Если подпись верна — данные действительно от Telegram</li>
+                    <li>Сервер может сохранить пользователя в базу данных</li>
+                    <li>В ответе сервер возвращает подтверждение и данные пользователя</li>
+                  </ol>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <p>Ожидаем данные пользователя...</p>
@@ -363,21 +480,19 @@ function UserDataDisplay() {
           
           {environment === 'real-telegram' && userData && (
             <button
-              onClick={() => {
-                console.log('Данные для отправки на сервер:', userData);
-                alert(`Готово к отправке на сервер!\nПользователь: ${userData.first_name} ${userData.last_name}\nID: ${userData.id}\nТеперь можно настроить API endpoint.`);
-              }}
+              onClick={sendToBackend}
+              disabled={loading}
               style={{
                 padding: '10px 20px',
-                backgroundColor: '#28a745',
+                backgroundColor: loading ? '#6c757d' : '#28a745',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '14px'
               }}
             >
-              🚀 Подготовить к отправке на сервер
+              {loading ? '⏳ Отправка...' : '🚀 Отправить на сервер'}
             </button>
           )}
         </div>
@@ -394,24 +509,20 @@ function UserDataDisplay() {
         borderRadius: '12px',
         borderLeft: '4px solid #2481cc'
       }}>
-        <h3>📝 Что делать дальше?</h3>
+        <h3>📝 Следующие шаги:</h3>
         <ol style={{ lineHeight: '1.6' }}>
-          <li>
-            <strong>Если вы в реальном Telegram и видите свои данные:</strong> 
-            <br />Отлично! Теперь можно настроить отправку этих данных на сервер для проверки и сохранения.
-          </li>
-          <li>
-            <strong>Если вы в реальном Telegram, но видите "Ивана Иванова":</strong>
-            <br />Нажмите "🔍 Проверить данные в консоли" и отправьте мне логи. Нужно исправить определение среды.
-          </li>
-          <li>
-            <strong>Следующий шаг:</strong> 
-            <br />Настроить API endpoint для проверки подписи Telegram и сохранения пользователя в базу данных.
-          </li>
+          <li><strong>Шаг 1 (сейчас):</strong> Проверьте работу API endpoint, нажав кнопку выше</li>
+          <li><strong>Шаг 2:</strong> Настроить базу данных (PostgreSQL/MongoDB) для сохранения пользователей</li>
+          <li><strong>Шаг 3:</strong> Реализовать реальное сохранение пользователя в БД</li>
+          <li><strong>Шаг 4:</strong> Создать JWT-токены для авторизации API запросов</li>
+          <li><strong>Шаг 5:</strong> Защитить другие API endpoints проверкой подписи Telegram</li>
         </ol>
         
         <div style={{ marginTop: '15px', padding: '10px', background: '#cce5ff', borderRadius: '6px' }}>
           <p><strong>Текущий статус:</strong> {environment === 'real-telegram' ? '✅ Готово к интеграции с сервером' : '🛠️ В процессе настройки'}</p>
+          {environment === 'mocked' && (
+            <p>Для тестирования API endpoint вам нужно открыть приложение в реальном Telegram.</p>
+          )}
         </div>
       </div>
     </div>
