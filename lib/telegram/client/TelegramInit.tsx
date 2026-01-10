@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
 
+interface User{
+  id: number,
+  firstName: string,
+  lastName: string,
+  photoUrl: string
+}
 export default function TelegramInit() {
   const rawInitData = useRawInitData();
   const { user } = useLaunchParams(); // Получаем данные пользователя
@@ -18,15 +24,11 @@ export default function TelegramInit() {
     }
   }, [rawInitData]);
 
+  const [userData,setUserData] = useState<User | null>(null)
   // Можно сразу использовать данные пользователя в интерфейсе
   useEffect(() => {
     if (user) {
-      console.log('User from Telegram:', {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        photoUrl: user.photoUrl,
-      });
+      console.log(user);
     }
   }, [user]);
 
