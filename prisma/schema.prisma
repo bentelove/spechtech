@@ -1,0 +1,38 @@
+// prisma/schema.prisma - MySQL схема
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// prisma/schema.prisma
+model User {
+  id              Int      @id @default(autoincrement())
+  telegramId      String   @unique
+  firstName       String
+  lastName        String?
+  username        String?
+  languageCode    String   @default("ru")
+  isPremium       Boolean  @default(false)
+  photoUrl        String?
+  
+  // Дополнительные поля
+  balance         Float    @default(0)
+  role            String   @default("user")
+  
+  // Настройки как JSON
+  settings        Json?    @default("{}") // <-- ДОБАВЛЕНО
+  
+  // Даты
+  registeredAt    DateTime @default(now())
+  lastLogin       DateTime @default(now())
+  loginCount      Int      @default(0)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("users")
+}
