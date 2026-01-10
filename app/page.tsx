@@ -14,7 +14,7 @@ export default function HomePage() {
     <Suspense fallback={<div>Loading Telegram...</div>}>
       <TelegramInit />
       <main>
-        <h1>Your Mini App Content</h1>
+        <h1>Your Minfffi App Content</h1>
         {/* Ваш интерфейс здесь */}
       </main>
     </Suspense>
