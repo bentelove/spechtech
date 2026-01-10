@@ -1,17 +1,22 @@
-import Image from "next/image";
+'use client'; // Обязательно клиентский компонент!
 
-export default function Home() {
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+
+// Динамический импорт без SSR
+const TelegramInit = dynamic(
+  () => import('../lib/telegram/client/TelegramInit'),
+  { ssr: false }
+);
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-       
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          aaa
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          ffff
-        </div>
+    <Suspense fallback={<div>Loading Telegram...</div>}>
+      <TelegramInit />
+      <main>
+        <h1>Your Mini App Content</h1>
+        {/* Ваш интерфейс здесь */}
       </main>
-    </div>
+    </Suspense>
   );
 }

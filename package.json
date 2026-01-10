@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@telegram-apps/init-data-node": "^2.0.10",
     "@telegram-apps/sdk-react": "^3.3.9",
     "next": "16.1.1",
     "react": "19.2.3",
