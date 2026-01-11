@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validate } from '@telegram-apps/init-data-node';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { generateToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { initData, user } = body;
+    console.log('post');
 
     if (!initData || !user) {
       return NextResponse.json(

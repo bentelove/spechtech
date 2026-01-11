@@ -36,3 +36,7 @@ model User {
   
   @@map("users")
 }
+model Test{
+  id  Int @id @default(autoincrement())
+  text String @default("")
+}
